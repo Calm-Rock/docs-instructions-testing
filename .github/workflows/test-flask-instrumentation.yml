@@ -24,16 +24,21 @@ jobs:
           pip install Flask opentelemetry-distro==0.43b0 opentelemetry-exporter-otlp==1.22.0
           opentelemetry-bootstrap --action=install
 
-      - name: Instrument and Run Flask Application
+      - name: Start Flask App and Background Instrumentation
         run: |
           export OTEL_RESOURCE_ATTRIBUTES="service.name=flask-app"
           export OTEL_EXPORTER_OTLP_ENDPOINT="https://ingest.us.signoz.cloud:443"  # Adjust region if needed
           export OTEL_EXPORTER_OTLP_HEADERS="signoz-access-token=${{ secrets.SIGNOZ_ACCESS_TOKEN }}"
           export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"
           opentelemetry-instrument python3 main.py &
-          sleep 10  # Allow the Flask app to run for a while and send traces
+          sleep 5  # Allow time for the app to start
+
+      - name: Interact with the Flask App (Trigger Traces)
+        run: |
+          curl http://127.0.0.1:5000/  # Sending a request to the running app to trigger traces
+          sleep 10  # Allow time for traces to be sent to SigNoz
 
       - name: Verify Instrumentation
         run: |
           echo "Verifying traces sent to SigNoz..."
-          # Placeholder for trace verification logic
+          # Placeholder for trace verification logic (SigNoz API or other ways)
