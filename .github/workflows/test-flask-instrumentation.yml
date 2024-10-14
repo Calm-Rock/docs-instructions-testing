@@ -1,0 +1,41 @@
+name: Test Flask Instrumentation with SigNoz
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  test-flask-instrumentation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Flask and OpenTelemetry dependencies
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install Flask opentelemetry-distro==0.43b0 opentelemetry-exporter-otlp==1.22.0
+          opentelemetry-bootstrap --action=install
+
+      - name: Instrument and Run Flask Application
+        run: |
+          export OTEL_RESOURCE_ATTRIBUTES="service.name=flask-app"
+          export OTEL_EXPORTER_OTLP_ENDPOINT="https://ingest.in.signoz.cloud:443"  # Adjust region if needed
+          export OTEL_EXPORTER_OTLP_HEADERS="signoz-access-token=${{ secrets.SIGNOZ_ACCESS_TOKEN }}"
+          export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"
+          opentelemetry-instrument python3 main.py &
+          sleep 10  # Allow the Flask app to run for a while and send traces
+
+      - name: Verify Instrumentation
+        run: |
+          echo "Verifying traces sent to SigNoz..."
+          # Placeholder for trace validation logic (SigNoz API or other ways)
